@@ -3,10 +3,11 @@ This project will create factorio blueprints according to given rules
 
 used libraries:
 Java:
-  PApplet (processing core)
+  -PApplet (processing core)
+  
 Phyton:
-  base64
-  zlib
+  -base64
+  -zlib
 
 Final file created by the phyton project is unfinished.
 The first two and the last character have to get removed.
