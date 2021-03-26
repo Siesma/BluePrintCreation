@@ -11,10 +11,10 @@ public class dataCreator extends PApplet {
     }
 
 
-    private static final int LEN = 356;
+    private static final int LEN = 356; //356
     private static final double PHI = (1 + sqrt(5)) / 2;
     private static final int OFFSET = 40;
-    private int amount = 0;
+    private int amount = -1;
     private double ang = (PI / 5) * amount;
     private final String[] VAL = { "One", "Two", "Three", "Four", "Five" };
 
@@ -29,14 +29,14 @@ public class dataCreator extends PApplet {
     }
 
     void increaseAngle() {
+        this.amount++;
         ang += PI / 5;
         renderShape();
     }
 
-    void saveData(int amount) {
+    void saveData(int amount, String type) {
         try {
-            File f = new File("My_File_" + VAL[amount] + "_Combined.txt");
-            this.amount++;
+            File f = new File("My_File_" + VAL[amount] + "_" + type + "_Combined.txt");
             f.createNewFile();
             FileWriter fileWriter = new FileWriter(f);
             String text = "";
@@ -78,6 +78,7 @@ public class dataCreator extends PApplet {
                 fileWriter.write(s);
             fileWriter.write(ending);
             fileWriter.close();
+            System.out.println("Finished file \"" + VAL[amount] + " " + type + "\"");
         } catch (IOException e) {
             System.out.println("An Error occured! Either the file creating failed or the valindex was invalid");
             System.exit(1);
@@ -87,7 +88,9 @@ public class dataCreator extends PApplet {
 
     public void renderShape() {
         background(128);
-        Vec kiteA, kiteB, kiteC, kiteD, kiteE, center;
+        Vec center;
+        Vec kiteA, kiteB, kiteC, kiteD, kiteE;
+        Vec dartA, dartB, dartC, dartD;
         double cos_ts = Math.cos(Math.toRadians(36));
         double sin_ts = Math.sin(Math.toRadians(36));
         center = new Vec(width / 2, height / 2);
@@ -95,23 +98,63 @@ public class dataCreator extends PApplet {
         double a = Math.sin(Math.toRadians(18)) * c;
 
 
-        kiteA = new Vec(center.x - (c), center.y);
-        kiteB = new Vec(center.x + (1 / (LEN / a)) * LEN, center.y + LEN * sin_ts);
-        kiteC = new Vec(center.x + (1 / (LEN / a)) * LEN, center.y - LEN * sin_ts);
-        kiteD = new Vec(center.x, center.y);
+        /**
+         * Begin definition of the dart.
+         */
+        dartA = new Vec(center.x - (c), center.y);
+        dartB = new Vec(center.x + (1 / (LEN / a)) * LEN, center.y + LEN * sin_ts);
+        dartC = new Vec(center.x + (1 / (LEN / a)) * LEN, center.y - LEN * sin_ts);
+        dartD = new Vec(center.x, center.y);
+
+        dartA = rotate_point((float) center.x, (float) center.y, (float) ang, dartA);
+        dartB = rotate_point((float) center.x, (float) center.y, (float) ang, dartB);
+        dartC = rotate_point((float) center.x, (float) center.y, (float) ang, dartC);
+        dartD = rotate_point((float) center.x, (float) center.y, (float) ang, dartD);
+
+
+        Dart dart = new Dart(
+                new Triangle(dartA, dartD, dartB),
+                new Triangle(dartA, dartD, dartC)
+        );
+
+
+        /**
+         * End defintion of the dart.
+         */
+        /**
+         * Begin definition of the kite.
+         */
+        kiteA = new Vec(center.x - (LEN * cos_ts), center.y);
+        kiteB = new Vec(center.x, center.y - (LEN * sin_ts));
+        kiteC = new Vec(center.x, center.y + (LEN * sin_ts));
+        kiteD = new Vec(center.x + (LEN - (LEN * cos_ts)), center.y);
+        kiteE = new Vec(center.x, center.y);
+
+
         kiteA = rotate_point((float) center.x, (float) center.y, (float) ang, kiteA);
         kiteB = rotate_point((float) center.x, (float) center.y, (float) ang, kiteB);
         kiteC = rotate_point((float) center.x, (float) center.y, (float) ang, kiteC);
         kiteD = rotate_point((float) center.x, (float) center.y, (float) ang, kiteD);
+        kiteE = rotate_point((float) center.x, (float) center.y, (float) ang, kiteE);
+
+
         Kite kite = new Kite(
-                new Triangle(kiteA, kiteD, kiteB),
-                new Triangle(kiteA, kiteD, kiteC),
-                new Triangle(kiteA, kiteD, kiteC),
-                new Triangle(kiteA, kiteD, kiteC)
+                new Triangle(kiteA, kiteB, kiteE),
+                new Triangle(kiteB, kiteD, kiteE),
+                new Triangle(kiteC, kiteD, kiteE),
+                new Triangle(kiteA, kiteE, kiteC)
         );
-        kite.render();
+
+        /**
+         * End defintion of the kite.
+         */
+
+
         if (amount < 5) {
-            saveData(amount);
+            kite.render();
+            saveData(amount, "Kite");
+            dart.render();
+            saveData(amount, "Dart");
             increaseAngle();
         } else {
             System.out.println("Finished!");
@@ -120,50 +163,24 @@ public class dataCreator extends PApplet {
     }
 
     abstract class Shape {
-        Triangle a, b, c, d;
+        Triangle[] triangles;
 
-        Shape(Triangle a, Triangle b, Triangle c, Triangle d) {
-            this.a = a;
-            this.b = b;
-            this.c = c;
-            this.d = d;
+        Shape(Triangle... triangles) {
+            this.triangles = triangles;
         }
 
-        abstract void render();
-    }
+        double allowance = 0.1;
 
-    class Kite extends Shape {
-        Kite(Triangle a, Triangle b, Triangle c, Triangle d) {
-            super(a, b, c, d);
-        }
-
-
-        @Override
         void render() {
             loadPixels();
-            /**
-            allowance handles the given deviation to the shape. Smaller values give a more exact result, but can also
-             contain smaller artifacts. Allowance cant be equal to 0 as that would fail with the floating point
-             precision.
-             */
-            double allowance = 0.0000001;
             for (int i = 0; i < pixels.length; i++) {
                 int x = i % width;
                 int y = i / height;
                 boolean flag = false;
                 Vec p = new Vec(x, y);
-                /**
-                can be used to create more creative prints.
-                 (example) ->
-                 int flag = -1;
-                 flag = a.distTo(p) + b.distTo(p) + c.distTo(p) + d.distTo(p) * RANGE_CONSTANT // has to be big: ~10^8;
-                 pixels[i] = flag == -1 ? -1 : color(flag);
-                 this will create a grey_scaled image of the blur of the given shape.
-                 the function distTo could be modified to not take the abs() value of the distance. Using that could
-                 result in this function to create just the outline and not a fully filled shape.
-                 */
-                if(a.distTo(p) + b.distTo(p) + c.distTo(p) + d.distTo(p) <= allowance * 4)
-                    flag = true;
+                for (Triangle t : triangles)
+                    if (t.distTo(p) <= allowance)
+                        flag = true;
                 if (flag) {
                     pixels[i] = -1;
                 } else {
@@ -171,9 +188,20 @@ public class dataCreator extends PApplet {
                 }
             }
             updatePixels();
-
         }
+    }
 
+    class Dart extends Shape {
+        Dart(Triangle a, Triangle b) {
+            super(a, b);
+        }
+    }
+
+
+    class Kite extends Shape {
+        Kite(Triangle a, Triangle b, Triangle c, Triangle d) {
+            super(a, b, c, d);
+        }
     }
 
     Vec rotate_point(float cx, float cy, float angle, Vec p) {
