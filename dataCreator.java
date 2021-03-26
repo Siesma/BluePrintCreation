@@ -7,7 +7,7 @@ import java.util.ArrayList;
 
 public class dataCreator extends PApplet {
     public static void main(String[] args) {
-        PApplet.main("combined", args);
+        PApplet.main("dataCreator", args);
     }
 
 
